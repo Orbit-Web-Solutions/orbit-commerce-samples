@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { verifyRequest, UnauthorizedError } from "../../../lib/orbit-auth";
 import { saveConnection, getConnection } from "../../../lib/connection";
-import { ensureSubscriptions } from "../../../lib/webhooks";
+import {
+  ensureSubscriptions,
+  type SubscriptionResult,
+} from "../../../lib/webhooks";
 
 /** Where Orbit should POST events. Must be HTTPS and reachable from outside. */
 const WEBHOOK_URL = process.env.ORBIT_WEBHOOK_URL;
@@ -27,7 +30,7 @@ export async function POST(request: NextRequest) {
     // Subscribing here means it happens once, at connect, with a credential we
     // already hold — and ensureSubscriptions skips what exists, so reopening
     // the plugin does not duplicate anything.
-    let webhooks: { created: string[]; existing: string[] } | null = null;
+    let webhooks: SubscriptionResult | null = null;
     if (WEBHOOK_URL) {
       const connection = await getConnection(context.storeId);
       if (connection) {

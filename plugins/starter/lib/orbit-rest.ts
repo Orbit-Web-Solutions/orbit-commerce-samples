@@ -144,3 +144,16 @@ export function createWebhook(
     body: JSON.stringify({ topic, webhookUrl }),
   });
 }
+
+/**
+ * Remove a subscription. Requires `webhook:delete`.
+ *
+ * Needed because only one subscription per topic is allowed — replacing a
+ * stale URL means deleting first. See `webhooks.ts`.
+ */
+export function deleteWebhook(
+  accessToken: string,
+  id: string,
+): Promise<unknown> {
+  return request(accessToken, `/v1/webhooks/${id}`, { method: "DELETE" });
+}

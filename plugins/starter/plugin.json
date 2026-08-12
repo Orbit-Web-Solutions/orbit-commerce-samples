@@ -24,6 +24,7 @@
       "product:update",
       "webhook:create",
       "webhook:list",
+      "webhook:delete",
       "billing:read"
     ],
     "redirectUrl": "http://localhost:3030/oauth/callback"
@@ -60,6 +61,10 @@
     {
       "scope": "billing:read",
       "description": "Check whether this store is subscribed, before running the paid part"
+    },
+    {
+      "scope": "webhook:delete",
+      "description": "Replace a subscription whose URL has changed \u2014 only one per topic is allowed, so the stale one must go first"
     }
   ],
   "ui": {

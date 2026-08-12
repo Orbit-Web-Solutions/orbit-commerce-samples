@@ -15,19 +15,19 @@ Then register it in the partner dashboard, point its extension point at your
 
 ## What it covers
 
-| Fundamental             | Where                                            | What is worth reading                                     |
-| ----------------------- | ------------------------------------------------ | --------------------------------------------------------- |
-| The install handshake   | `app/api/connect/route.ts`                       | How a plugin gets a credential at all                     |
-| Keeping that credential | `lib/orbit.ts`                                   | **Start here.** Token rotation, and the bug it prevents   |
-| The SDK                 | `lib/orbit.ts`, `worker/sync.ts`                 | Typed client, auto-refresh, auto-chunked writes           |
-| Direct REST             | `lib/orbit-rest.ts`                              | The two calls the SDK does not cover yet                  |
-| UI in the dashboard     | `app/embed/page.tsx`                             | The `postMessage` handshake, and where context comes from |
-| Per-store settings      | `lib/settings.ts`                                | Merging over defaults so adding a field is safe           |
-| Your own database       | `prisma/schema.prisma`, `app/api/notes/route.ts` | CRUD scoped by store — every query, every time            |
-| Inbound webhooks        | `app/api/webhooks/orbit/route.ts`                | Signature verification, fast ack, duplicate handling      |
-| Subscribing             | `lib/webhooks.ts`                                | Idempotent, so restarts do not duplicate                  |
-| Billing                 | `lib/billing.ts`, `app/embed/page.tsx`           | Entitlement checked on the server, not in the page        |
-| Background work         | `worker/`                                        | A separate process, iterating every connected store       |
+| Fundamental             | Where                                            | What is worth reading                                        |
+| ----------------------- | ------------------------------------------------ | ------------------------------------------------------------ |
+| The install handshake   | `app/api/connect/route.ts`                       | How a plugin gets a credential at all                        |
+| Keeping that credential | `lib/orbit.ts`                                   | **Start here.** Token rotation, and the bug it prevents      |
+| The SDK                 | `lib/orbit.ts`, `worker/sync.ts`                 | Typed client, auto-refresh, auto-chunked writes              |
+| Direct REST             | `lib/orbit-rest.ts`                              | The two calls the SDK does not cover yet                     |
+| UI in the dashboard     | `app/embed/page.tsx`                             | The `postMessage` handshake, and where context comes from    |
+| Per-store settings      | `lib/settings.ts`                                | Merging over defaults so adding a field is safe              |
+| Your own database       | `prisma/schema.prisma`, `app/api/notes/route.ts` | CRUD scoped by store — every query, every time               |
+| Inbound webhooks        | `app/api/webhooks/orbit/route.ts`                | Signature verification, fast ack, duplicate handling         |
+| Subscribing             | `lib/webhooks.ts`                                | Reconciling, so a moved endpoint is corrected not duplicated |
+| Billing                 | `lib/billing.ts`, `app/embed/page.tsx`           | Entitlement checked on the server, not in the page           |
+| Background work         | `worker/`                                        | A separate process, iterating every connected store          |
 
 ## Pricing, and where it actually lives
 
