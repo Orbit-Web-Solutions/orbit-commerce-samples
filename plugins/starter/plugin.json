@@ -19,6 +19,7 @@
     "scopes": [
       "order:list",
       "order:read",
+      "product:list",
       "product:read",
       "product:update",
       "webhook:create",
@@ -35,6 +36,10 @@
     {
       "scope": "order:read",
       "description": "Read order detail, and required for order.* webhook topics"
+    },
+    {
+      "scope": "product:list",
+      "description": "Browse the store's catalogue \u2014 a separate scope from product:read, which alone will not list"
     },
     {
       "scope": "product:read",
@@ -81,7 +86,7 @@
       "path": "/api/webhooks/orbit"
     }
   ],
-  "_pricingNote": "Display summary for the store listing ONLY. It does not create anything billable — sellable plans and prices are configured on the plugin's detail page in the partner dashboard. Models: free | one_time | subscription (with optional trialDays).",
+  "_pricingNote": "Display summary for the store listing ONLY. It does not create anything billable \u2014 sellable plans and prices are configured on the plugin's detail page in the partner dashboard. Models: free | one_time | subscription (with optional trialDays).",
   "pricing": {
     "model": "free"
   }

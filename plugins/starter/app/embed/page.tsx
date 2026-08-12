@@ -11,6 +11,14 @@ interface Settings {
   label: string;
 }
 
+interface StoreProduct {
+  id: string;
+  name: string;
+  status: string;
+  price: string | null;
+  image: string | null;
+}
+
 interface Note {
   id: string;
   body: string;
@@ -38,6 +46,10 @@ export default function EmbedPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState("");
+  const [products, setProducts] = useState<StoreProduct[]>([]);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscribed, setSubscribed] = useState<string>("checking…");
   const [orbit, setOrbit] = useState<OrbitClient | null>(null);
@@ -127,12 +139,14 @@ export default function EmbedPage() {
   useEffect(() => {
     if (!token) return;
     void (async () => {
-      const [s, n] = await Promise.all([
+      const [s, n, p] = await Promise.all([
         authed("/api/settings").then((r) => r.json()),
         authed("/api/notes").then((r) => r.json()),
+        authed("/api/products").then((r) => r.json()),
       ]);
       setSettings(s);
       setNotes(n.notes ?? []);
+      setProducts(p.products ?? []);
     })();
   }, [token, authed]);
 
@@ -152,6 +166,46 @@ export default function EmbedPage() {
     }).then((r) => r.json());
     setNotes((prev) => [note, ...prev]);
     setDraft("");
+  };
+
+  const reloadProducts = async () => {
+    const p = await authed("/api/products").then((r) => r.json());
+    setProducts(p.products ?? []);
+  };
+
+  const renameProduct = async (id: string) => {
+    if (!editName.trim()) return;
+    setBusy(id);
+    try {
+      await authed("/api/products", {
+        method: "PATCH",
+        body: JSON.stringify({ id, name: editName }),
+      });
+      setEditing(null);
+      await reloadProducts();
+      orbit?.toast({ message: "Product renamed", type: "success" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const archiveProduct = async (product: StoreProduct) => {
+    // Confirm before anything destructive. This is the merchant's live
+    // catalogue, not your data — and an accidental click here is visible in
+    // their storefront.
+    const ok = window.confirm(
+      `Archive "${product.name}"?\n\nIt will be hidden from the storefront. You can restore it from the products page in the dashboard.`,
+    );
+    if (!ok) return;
+
+    setBusy(product.id);
+    try {
+      await authed(`/api/products?id=${product.id}`, { method: "DELETE" });
+      await reloadProducts();
+      orbit?.toast({ message: "Product archived", type: "success" });
+    } finally {
+      setBusy(null);
+    }
   };
 
   const deleteNote = async (id: string) => {
@@ -215,6 +269,127 @@ export default function EmbedPage() {
             style={S.input}
           />
         </label>
+      </Section>
+
+      <Section
+        title="The store's products"
+        note="Read and changed through the SDK, using the credential this store granted. A plugin can only ever reach the store that installed it."
+      >
+        {products.length === 0 ? (
+          <p style={S.hint}>No products, or the connection is not ready yet.</p>
+        ) : (
+          <table
+            style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}
+          >
+            <tbody>
+              {products.map((p) => (
+                <tr key={p.id} style={{ borderTop: "1px solid #eee" }}>
+                  <td style={{ padding: "8px 8px 8px 0", width: 48 }}>
+                    {p.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.image}
+                        alt=""
+                        width={40}
+                        height={40}
+                        style={{
+                          objectFit: "cover",
+                          borderRadius: 4,
+                          display: "block",
+                        }}
+                      />
+                    ) : (
+                      <div style={S.noImage} />
+                    )}
+                  </td>
+
+                  <td style={{ padding: 8 }}>
+                    {editing === p.id ? (
+                      <input
+                        autoFocus
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void renameProduct(p.id);
+                          if (e.key === "Escape") setEditing(null);
+                        }}
+                        style={{ ...S.input, width: "100%" }}
+                      />
+                    ) : (
+                      <>
+                        <div>{p.name}</div>
+                        {p.status !== "active" && (
+                          <div style={S.hint}>{p.status}</div>
+                        )}
+                      </>
+                    )}
+                  </td>
+
+                  <td
+                    style={{
+                      padding: 8,
+                      textAlign: "right",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {p.price ?? "—"}
+                  </td>
+
+                  <td
+                    style={{
+                      padding: 8,
+                      textAlign: "right",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {editing === p.id ? (
+                      <>
+                        <button
+                          style={S.button}
+                          disabled={busy === p.id}
+                          onClick={() => void renameProduct(p.id)}
+                        >
+                          Save
+                        </button>{" "}
+                        <button
+                          style={S.button}
+                          onClick={() => setEditing(null)}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          style={S.button}
+                          onClick={() => {
+                            setEditing(p.id);
+                            setEditName(p.name);
+                          }}
+                        >
+                          Rename
+                        </button>{" "}
+                        <button
+                          style={{ ...S.button, color: "#b3261e" }}
+                          disabled={busy === p.id}
+                          onClick={() => void archiveProduct(p)}
+                        >
+                          Archive
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <p style={{ ...S.hint, marginTop: 12 }}>
+          There is no product delete on the public API, on purpose — a plugin
+          can create and change catalogue entries but not destroy them.
+          Archiving is the reversible equivalent, and it still asks first.
+        </p>
       </Section>
 
       <Section
@@ -373,6 +548,12 @@ const S = {
     background: "#fff",
     cursor: "pointer",
     fontSize: 14,
+  },
+  noImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 4,
+    background: "#f0f0f0",
   },
   note: {
     display: "flex",
