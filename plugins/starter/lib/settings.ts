@@ -16,17 +16,17 @@ import { db } from "./db";
  * because every merchant configures it differently.
  */
 export interface StarterSettings {
-  /** How often the background job runs, in minutes. */
+  /**
+   * How often the background worker runs a pass for this store, in minutes.
+   * Read by `worker/index.ts` — this is a real setting, not a display value.
+   */
   syncIntervalMinutes: number;
-  /** Whether the background job writes anything back to Orbit. */
-  writeBackEnabled: boolean;
-  /** Free-text label, purely to show a string field round-tripping. */
+  /** Free-text label, showing a string field round-tripping. */
   label: string;
 }
 
 export const DEFAULT_SETTINGS: StarterSettings = {
   syncIntervalMinutes: 5,
-  writeBackEnabled: false,
   label: "",
 };
 

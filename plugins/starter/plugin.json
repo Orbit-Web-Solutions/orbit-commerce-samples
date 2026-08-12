@@ -9,11 +9,12 @@
     "url": "https://orbitcommerce.net"
   },
   "icon": "https://placehold.co/128x128/1a1a1a/white?text=S",
-
   "extensionPoints": [
-    { "target": "dashboard.main.embed", "url": "http://localhost:3030/embed" }
+    {
+      "target": "dashboard.main.embed",
+      "url": "http://localhost:3030/embed"
+    }
   ],
-
   "oauth": {
     "scopes": [
       "order:list",
@@ -21,11 +22,11 @@
       "product:read",
       "product:update",
       "webhook:create",
-      "webhook:list"
+      "webhook:list",
+      "billing:read"
     ],
     "redirectUrl": "http://localhost:3030/oauth/callback"
   },
-
   "permissions": [
     {
       "scope": "order:list",
@@ -50,9 +51,12 @@
     {
       "scope": "webhook:list",
       "description": "Check existing subscriptions so restarts do not duplicate them"
+    },
+    {
+      "scope": "billing:read",
+      "description": "Check whether this store is subscribed, before running the paid part"
     }
   ],
-
   "ui": {
     "menu": {
       "label": "Starter",
@@ -67,12 +71,17 @@
       }
     ]
   },
-
   "webhooks": [
-    { "topic": "order.created", "path": "/api/webhooks/orbit" },
-    { "topic": "order.updated", "path": "/api/webhooks/orbit" }
+    {
+      "topic": "order.created",
+      "path": "/api/webhooks/orbit"
+    },
+    {
+      "topic": "order.updated",
+      "path": "/api/webhooks/orbit"
+    }
   ],
-
+  "_pricingNote": "Display summary for the store listing ONLY. It does not create anything billable — sellable plans and prices are configured on the plugin's detail page in the partner dashboard. Models: free | one_time | subscription (with optional trialDays).",
   "pricing": {
     "model": "free"
   }

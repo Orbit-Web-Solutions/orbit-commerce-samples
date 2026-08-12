@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import { listConnectedStoreIds } from "../lib/connection";
 import { clientForStore } from "../lib/orbit";
 import { runSync, isRetryable } from "./sync";
+import { getSettings } from "../lib/settings";
 
 /**
  * The background half of the plugin — a scheduled job, a daemon, a Windows
@@ -52,6 +53,16 @@ function writeCheckpoint(storeId: string, since: Date): void {
   writeFileSync(CHECKPOINTS, JSON.stringify(all, null, 2), "utf8");
 }
 
+/** Whether enough time has passed for THIS store, per its own setting. */
+async function isDue(storeId: string): Promise<boolean> {
+  const { syncIntervalMinutes } = await getSettings(storeId);
+  const last = readCheckpoints()[storeId];
+  if (!last) return true;
+
+  const elapsedMinutes = (Date.now() - new Date(last).getTime()) / 60_000;
+  return elapsedMinutes >= syncIntervalMinutes;
+}
+
 async function syncStore(storeId: string): Promise<void> {
   const since = checkpointFor(storeId);
 
@@ -75,7 +86,7 @@ async function syncStore(storeId: string): Promise<void> {
 
     writeCheckpoint(storeId, startedAt);
     console.log(
-      `[starter] ${storeId}: ${result.ordersSeen} orders seen, ${result.eventsProcessed} events processed`,
+      `[starter] ${storeId}: ${result.ordersSeen} orders seen, ${result.eventsProcessed} events processed, billing: ${result.entitlement}`,
     );
   } catch (error) {
     // The checkpoint is deliberately NOT advanced, so the next pass re-covers
@@ -102,7 +113,12 @@ async function tick() {
   // Sequential on purpose. Stores share a per-installation rate limit, and
   // running them concurrently makes a 429 hard to attribute.
   for (const storeId of storeIds) {
-    await syncStore(storeId);
+    // Each store sets its own cadence. The tick interval is just the floor —
+    // a merchant asking for hourly should not be polled every five minutes
+    // because that is what the process happens to loop at.
+    if (await isDue(storeId)) {
+      await syncStore(storeId);
+    }
   }
 }
 

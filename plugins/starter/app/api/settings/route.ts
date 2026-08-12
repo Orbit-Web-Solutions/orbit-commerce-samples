@@ -33,10 +33,6 @@ export async function PATCH(request: NextRequest) {
     // caller add keys you never intended to store.
     const saved = await saveSettings(storeId, {
       syncIntervalMinutes: clampInterval(body.syncIntervalMinutes),
-      writeBackEnabled:
-        typeof body.writeBackEnabled === "boolean"
-          ? body.writeBackEnabled
-          : undefined,
       label:
         typeof body.label === "string" ? body.label.slice(0, 200) : undefined,
     });

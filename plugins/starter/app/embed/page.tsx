@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { OrbitClient } from "@orbitcommerce/sdk";
+import type { Plan } from "@orbitcommerce/sdk";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 interface Settings {
   syncIntervalMinutes: number;
-  writeBackEnabled: boolean;
   label: string;
 }
 
@@ -38,7 +38,9 @@ export default function EmbedPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState("");
-  const [plan, setPlan] = useState<string>("checking…");
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [subscribed, setSubscribed] = useState<string>("checking…");
+  const [orbit, setOrbit] = useState<OrbitClient | null>(null);
 
   const authed = useCallback(
     (path: string, init: RequestInit = {}) =>
@@ -84,14 +86,34 @@ export default function EmbedPage() {
         setStoreId(storeId);
         setToken(sessionToken);
 
-        // Billing lives in the SDK. `hasActiveSubscription` is how you gate a
-        // paid feature — check it server-side too before doing anything that
-        // costs you money; a client can lie.
+        setOrbit(orbit);
+
+        // Billing. What the merchant may buy, and what they already have.
+        //
+        // This is for DISPLAY. The same check runs server-side in
+        // lib/billing.ts before anything that costs money happens — a page
+        // running on the merchant's machine cannot be the thing that decides
+        // whether they paid.
+        //
+        // Requires the `billing:read` scope. Without it these 401, and a
+        // handler that treats the error as "not subscribed" shows a free tier
+        // to paying customers.
         try {
-          const active = await orbit.billing.hasActiveSubscription();
-          setPlan(active ? "subscribed" : "free plan");
-        } catch {
-          setPlan("billing unavailable");
+          const [available, status] = await Promise.all([
+            orbit.billing.getPlans(),
+            orbit.billing.getSubscriptionStatus(),
+          ]);
+          setPlans(available ?? []);
+          setSubscribed(
+            status.hasSubscription
+              ? (status.subscription?.planName ?? "subscribed")
+              : "no subscription",
+          );
+        } catch (e) {
+          // Not "no subscription" — we genuinely do not know.
+          setSubscribed(
+            `billing unavailable (${e instanceof Error ? e.message : "error"})`,
+          );
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Connection failed");
@@ -161,7 +183,7 @@ export default function EmbedPage() {
     <Shell>
       <p style={{ color: "#0a7d32", marginBottom: 4 }}>Connected</p>
       <p style={S.hint}>
-        Store {storeId?.slice(0, 8)}… · {plan}
+        Store {storeId?.slice(0, 8)}… · {subscribed}
       </p>
 
       <Section
@@ -183,17 +205,6 @@ export default function EmbedPage() {
         </label>
 
         <label style={S.row}>
-          <span>Write back to Orbit</span>
-          <input
-            type="checkbox"
-            checked={settings.writeBackEnabled}
-            onChange={(e) =>
-              saveSettings({ writeBackEnabled: e.target.checked })
-            }
-          />
-        </label>
-
-        <label style={S.row}>
           <span>Label</span>
           <input
             value={settings.label}
@@ -204,6 +215,62 @@ export default function EmbedPage() {
             style={S.input}
           />
         </label>
+      </Section>
+
+      <Section
+        title="Billing"
+        note="What this plugin charges for, and what this store has."
+      >
+        {plans.length === 0 ? (
+          <p style={S.hint}>
+            No plans. The <code>pricing</code> block in <code>plugin.json</code>{" "}
+            is only a display summary for the store listing — it does not create
+            anything sellable. Real plans and prices are configured on the
+            plugin&apos;s detail page in the partner dashboard, and that is what
+            appears here.
+          </p>
+        ) : (
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {plans.map((p) => {
+              const price = p.prices?.[0];
+              return (
+                <li key={p.id} style={S.note}>
+                  <span>
+                    {p.name}
+                    {price
+                      ? ` — ${price.currencyCode} ${price.price}/${price.billingPeriod}`
+                      : ""}
+                  </span>
+                  <button
+                    style={S.button}
+                    onClick={async () => {
+                      if (!orbit || !price) return;
+                      try {
+                        // The dashboard renders the payment UI; your plugin
+                        // never touches card details.
+                        await orbit.billing.requestPurchase({
+                          planId: p.id,
+                          priceId: price.id,
+                        });
+                        orbit.toast({ message: "Purchased", type: "success" });
+                      } catch (e) {
+                        orbit.toast({
+                          message:
+                            e instanceof Error
+                              ? e.message
+                              : "Purchase cancelled",
+                          type: "error",
+                        });
+                      }
+                    }}
+                  >
+                    Buy
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </Section>
 
       <Section

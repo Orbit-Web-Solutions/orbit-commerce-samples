@@ -2,11 +2,13 @@ import type { OrbitClient } from "@orbitcommerce/sdk";
 
 import { listOrdersUpdatedSince, OrbitRestError } from "../lib/orbit-rest";
 import { db } from "../lib/db";
-import { getSettings } from "../lib/settings";
+import { checkEntitlement } from "../lib/billing";
 
 export interface SyncResult {
   ordersSeen: number;
   eventsProcessed: number;
+  /** What the paid path decided this pass. */
+  entitlement?: string;
   /** Set when the credential is unusable and a human must reconnect. */
   needsReconnect: boolean;
 }
@@ -33,8 +35,6 @@ export async function runSync(
     return { ordersSeen: 0, eventsProcessed: 0, needsReconnect: true };
   }
 
-  const settings = await getSettings(storeId);
-
   // --- drain recorded webhook events ---------------------------------------
   // The receiver answers Orbit immediately and records; the real work happens
   // here, where being slow costs nothing.
@@ -59,18 +59,23 @@ export async function runSync(
     since,
   );
 
-  // --- optional write back --------------------------------------------------
-  if (settings.writeBackEnabled && orders.length > 0) {
-    // Reads go through the SDK, which is typed and unwraps the response
-    // envelope for you. It also chunks bulk writes to the API's 50-per-call
-    // limit, so you do not have to.
+  // --- the part you charge for ---------------------------------------------
+  // Checked HERE, on the server, every pass. The embed checks too so the UI
+  // can show the right thing, but the embed runs on the merchant's machine.
+  // Anything that costs you money is decided somewhere they cannot edit.
+  const entitlement = await checkEntitlement(storeId);
+
+  if (entitlement.state === "entitled" && orders.length > 0) {
+    // Reads go through the SDK: typed, envelope unwrapped for you, and bulk
+    // writes chunked to the API's 50-per-call limit automatically.
     const products = await orbit.products.list({ page: 1, limit: 1 });
-    void products;
+    void products; // ... whatever the paid feature actually does
   }
 
   return {
     ordersSeen: orders.length,
     eventsProcessed: pending.length,
+    entitlement: entitlement.state,
     needsReconnect: false,
   };
 }

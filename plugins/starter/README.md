@@ -26,8 +26,28 @@ Then register it in the partner dashboard, point its extension point at your
 | Your own database       | `prisma/schema.prisma`, `app/api/notes/route.ts` | CRUD scoped by store — every query, every time            |
 | Inbound webhooks        | `app/api/webhooks/orbit/route.ts`                | Signature verification, fast ack, duplicate handling      |
 | Subscribing             | `lib/webhooks.ts`                                | Idempotent, so restarts do not duplicate                  |
-| Billing                 | `app/embed/page.tsx`                             | Checking whether the merchant is subscribed               |
+| Billing                 | `lib/billing.ts`, `app/embed/page.tsx`           | Entitlement checked on the server, not in the page        |
 | Background work         | `worker/`                                        | A separate process, iterating every connected store       |
+
+## Pricing, and where it actually lives
+
+The `pricing` block in `plugin.json` is a **display summary for the store
+listing**. It does not create anything billable. Sellable plans and their
+prices are configured on the plugin's detail page in the partner dashboard,
+and that is what `orbit.billing.getPlans()` returns.
+
+So a manifest saying `"model": "subscription"` with no plans configured shows a
+price on the listing and sells nothing. The four models are `free`, `one_time`,
+and `subscription` with or without `trialDays`.
+
+Two rules for anything you charge for:
+
+- **Decide entitlement on the server.** `lib/billing.ts` does. The page checks
+  too, so the UI is right, but the page runs on the merchant's machine.
+- **Request the `billing:read` scope.** Without it the status endpoint answers
+  401, and code that treats an error as "not subscribed" shows a free tier to
+  paying customers. Treat `unknown` as its own state — an outage must not
+  silently downgrade someone.
 
 ## Two things that are easy to get wrong
 
