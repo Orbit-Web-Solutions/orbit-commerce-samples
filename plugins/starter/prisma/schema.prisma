@@ -1,0 +1,60 @@
+// The plugin's OWN database. Orbit's data stays in Orbit; this is yours.
+//
+// SQLite so the sample runs with no infrastructure. Real plugins use Postgres
+// — change the provider and the url, nothing else here.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// One row per store that has installed this plugin.
+///
+/// Everything is per store, because one plugin serves every merchant who
+/// installs it. There is no global state in a plugin.
+model Connection {
+  storeId      String   @id
+  /// Encrypted at rest — see lib/orbit-auth.ts. A refresh token is a 90-day
+  /// key to the merchant's store.
+  accessToken  String
+  refreshToken String
+  /// Plugin settings, stored as JSON. Kept alongside the credential so a
+  /// background job has everything it needs from one row.
+  settings     String   @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  notes  Note[]
+  events WebhookEvent[]
+}
+
+/// A trivial per-store record, standing in for whatever your plugin stores.
+/// It exists to show CRUD against your own database, scoped by store.
+model Note {
+  id         String     @id @default(uuid())
+  storeId    String
+  connection Connection @relation(fields: [storeId], references: [storeId], onDelete: Cascade)
+  body       String
+  createdAt  DateTime   @default(now())
+
+  @@index([storeId])
+}
+
+/// Delivered webhooks, recorded before they are processed.
+///
+/// The unique constraint on eventId is what makes redelivery safe: Orbit may
+/// send the same event more than once, and at-least-once delivery is a
+/// promise you have to absorb rather than assume away.
+model WebhookEvent {
+  eventId     String     @id
+  storeId     String
+  connection  Connection @relation(fields: [storeId], references: [storeId], onDelete: Cascade)
+  topic       String
+  receivedAt  DateTime   @default(now())
+  processedAt DateTime?
+
+  @@index([storeId, topic])
+}

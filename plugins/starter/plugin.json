@@ -1,0 +1,79 @@
+{
+  "pluginId": "orbit-starter",
+  "version": "1.0.0",
+  "displayName": "Starter",
+  "description": "A complete, minimal Orbit plugin. Demonstrates the install handshake, the SDK, per-store settings, CRUD against the plugin's own database, inbound webhooks, billing, and a background worker.",
+  "author": {
+    "name": "Orbit Commerce",
+    "email": "plugins@orbitcommerce.net",
+    "url": "https://orbitcommerce.net"
+  },
+  "icon": "https://placehold.co/128x128/1a1a1a/white?text=S",
+
+  "extensionPoints": [
+    { "target": "dashboard.main.embed", "url": "http://localhost:3030/embed" }
+  ],
+
+  "oauth": {
+    "scopes": [
+      "order:list",
+      "order:read",
+      "product:read",
+      "product:update",
+      "webhook:create",
+      "webhook:list"
+    ],
+    "redirectUrl": "http://localhost:3030/oauth/callback"
+  },
+
+  "permissions": [
+    {
+      "scope": "order:list",
+      "description": "Poll for orders that changed since the last sync"
+    },
+    {
+      "scope": "order:read",
+      "description": "Read order detail, and required for order.* webhook topics"
+    },
+    {
+      "scope": "product:read",
+      "description": "Match your records to Orbit products"
+    },
+    {
+      "scope": "product:update",
+      "description": "Write changes back to products"
+    },
+    {
+      "scope": "webhook:create",
+      "description": "Subscribe to order events so work is push-driven, not polled"
+    },
+    {
+      "scope": "webhook:list",
+      "description": "Check existing subscriptions so restarts do not duplicate them"
+    }
+  ],
+
+  "ui": {
+    "menu": {
+      "label": "Starter",
+      "icon": "beaker",
+      "position": 900
+    },
+    "pages": [
+      {
+        "path": "",
+        "label": "Overview",
+        "description": "Connection status, settings and records"
+      }
+    ]
+  },
+
+  "webhooks": [
+    { "topic": "order.created", "path": "/api/webhooks/orbit" },
+    { "topic": "order.updated", "path": "/api/webhooks/orbit" }
+  ],
+
+  "pricing": {
+    "model": "free"
+  }
+}
