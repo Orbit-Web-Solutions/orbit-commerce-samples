@@ -1,0 +1,53 @@
+{
+  "pluginId": "orbit-sample-connector",
+  "version": "1.0.0",
+  "displayName": "Sample ERP connector",
+  "description": "A reference integration showing how an external service \u2014 an ERP, WMS or accounting system \u2014 authenticates with Orbit and runs a two-way sync from its own infrastructure.",
+  "author": {
+    "name": "Orbit Commerce",
+    "email": "plugins@orbitcommerce.net",
+    "url": "https://orbitcommerce.net"
+  },
+  "extensionPoints": [
+    {
+      "target": "dashboard.main.embed",
+      "url": "http://localhost:3030/embed"
+    }
+  ],
+  "oauth": {
+    "scopes": [
+      "order:list",
+      "product:read",
+      "product:update",
+      "webhook:create",
+      "webhook:list",
+      "order:read"
+    ]
+  },
+  "permissions": [
+    {
+      "scope": "order:list",
+      "description": "Read orders that changed since the last sync, to send them to the ERP"
+    },
+    {
+      "scope": "product:read",
+      "description": "Match ERP SKUs to Orbit products"
+    },
+    {
+      "scope": "product:update",
+      "description": "Write ERP stock levels back onto Orbit products"
+    },
+    {
+      "scope": "webhook:create",
+      "description": "Subscribe to order events so the sync is push-driven rather than polling"
+    },
+    {
+      "scope": "webhook:list",
+      "description": "Check which subscriptions already exist, so restarts do not duplicate them"
+    },
+    {
+      "scope": "order:read",
+      "description": "Required alongside webhook:create for order.* topics"
+    }
+  ]
+}
