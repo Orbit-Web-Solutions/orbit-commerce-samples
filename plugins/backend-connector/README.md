@@ -92,14 +92,25 @@ npm run dev               # the connect page, port 3030
 
 Register the app in the partner dashboard with visibility `unlisted`, point its
 extension point at your `/embed` URL, generate an install link and install it on
-a store. Open the plugin; the page prints the store id.
+a store. Open the plugin once — that is the handshake.
 
 ```bash
-ORBIT_STORE_ID=<the id it printed> npm run worker
+npm run worker
 ```
 
-The worker pulls orders updated since its checkpoint, hands them to the stub
-ERP, then pushes stock levels back.
+There is nothing to configure. The worker reads whatever has connected, and
+syncs each store: orders updated since that store's checkpoint go to the stub
+ERP, then stock levels come back.
+
+**One app serves every merchant who installs it**, so a store id is never
+configuration. Merchants appear when they install and stop appearing when their
+credential is revoked, without a deployment. Each store gets its own checkpoint,
+and one store's broken credential does not stop the others.
+
+Even a connector built for a single client is worth writing this way. It costs
+one loop, and it makes the second merchant a non-event rather than a rewrite.
+(`ORBIT_STORE_ID` exists purely as a development filter for working on one
+store at a time.)
 
 **Do not develop against a store that is trading.** A two-way sync under
 development writes real orders into a real shop.

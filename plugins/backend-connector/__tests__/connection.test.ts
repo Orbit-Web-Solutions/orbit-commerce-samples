@@ -34,6 +34,10 @@ class MemoryStore implements TokenStore {
     this.writes += 1;
     this.rows.set(connection.storeId, connection);
   }
+
+  async listStoreIds() {
+    return [...this.rows.keys()];
+  }
 }
 
 describe("OrbitConnection", () => {

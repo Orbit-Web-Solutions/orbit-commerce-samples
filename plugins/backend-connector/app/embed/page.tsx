@@ -80,12 +80,13 @@ export default function ConnectPage() {
       {state.status === "connected" && (
         <>
           <p style={{ color: "#0a7d32" }}>
-            Connected. The sync runs in the background.
+            Connected. The sync runs in the background from here.
           </p>
           <p style={{ marginTop: 16, fontSize: 13, color: "#555" }}>
-            Store id — set this as <code>ORBIT_STORE_ID</code> for the worker:
+            Nothing to configure. This store is now one of the connections the
+            worker picks up on its next pass — it discovers stores from what has
+            connected, rather than being told about them.
           </p>
-          <code style={{ fontSize: 13 }}>{state.storeId}</code>
         </>
       )}
 

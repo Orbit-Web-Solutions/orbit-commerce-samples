@@ -25,13 +25,20 @@ export interface StoredConnection {
 export interface TokenStore {
   get(storeId: string): Promise<StoredConnection | null>;
   put(connection: StoredConnection): Promise<void>;
+  /**
+   * Every store that has connected.
+   *
+   * One app serves every merchant who installs it, so this is a list, not a
+   * single value. Your worker iterates it; a store id is never configuration.
+   */
+  listStoreIds(): Promise<string[]>;
 }
 
 /**
- * Tokens are encrypted at rest (AES-256-GCM, see `orbit-auth.ts`),
- * which read `TOKEN_ENCRYPTION_KEY`. This is not optional dressing for a
- * sample: a leaked refresh token is a 90-day key to the merchant's store, and
- * it is the single most valuable thing your integration holds.
+ * Tokens are encrypted at rest (AES-256-GCM, see `orbit-auth.ts`, which reads
+ * `TOKEN_ENCRYPTION_KEY`). This is not optional dressing for a sample: a
+ * leaked refresh token is a 90-day key to the merchant's store, and it is the
+ * single most valuable thing your integration holds.
  */
 export class FileTokenStore implements TokenStore {
   constructor(
@@ -48,6 +55,10 @@ export class FileTokenStore implements TokenStore {
     } catch {
       return {};
     }
+  }
+
+  async listStoreIds(): Promise<string[]> {
+    return Object.keys(this.readAll());
   }
 
   async get(storeId: string): Promise<StoredConnection | null> {
