@@ -27,5 +27,13 @@
     "typescript": "^5",
     "vitest": "^2.1.8",
     "prisma": "^6.1.0"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.26"
+    },
+    "@prisma/config": {
+      "deepmerge-ts": "^8.0.0"
+    }
   }
 }
